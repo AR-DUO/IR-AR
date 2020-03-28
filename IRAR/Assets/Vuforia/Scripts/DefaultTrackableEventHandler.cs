@@ -19,7 +19,7 @@ public class DefaultTrackableEventHandler : MonoBehaviour, ITrackableEventHandle
 {
     #region PROTECTED_MEMBER_VARIABLES
 
-    protected TrackableBehaviour mTrackableBehaviour;
+    public static TrackableBehaviour mTrackableBehaviour;
     protected TrackableBehaviour.Status m_PreviousStatus;
     protected TrackableBehaviour.Status m_NewStatus;
 
