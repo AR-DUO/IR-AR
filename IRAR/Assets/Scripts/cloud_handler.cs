@@ -1,0 +1,84 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using Vuforia;
+
+public class cloud_handler : MonoBehaviour, IObjectRecoEventHandler
+{
+    public ImageTargetBehaviour ImageTargetTemplate;
+    private CloudRecoBehaviour mCloudRecoBehaviour;
+    private bool mIsScanning = false;
+    public static string mTargetMetadata = "";
+    // Use this for initialization 
+    void Start()
+    {
+        // register this event handler at the cloud reco behaviour 
+        mCloudRecoBehaviour = GetComponent<CloudRecoBehaviour>(); //클라우드 모델을 받는다.
+
+        if (mCloudRecoBehaviour)
+        {
+            mCloudRecoBehaviour.RegisterEventHandler(this);
+        }
+    }
+    //스캔 에러 관련 예외 처리문
+    public void OnInitialized(TargetFinder targetFinder) 
+    {
+        Debug.Log("Cloud Reco initialized");
+    }
+    public void OnInitError(TargetFinder.InitState initError)
+    {
+        Debug.Log("Cloud Reco init error " + initError.ToString());
+    }
+    public void OnUpdateError(TargetFinder.UpdateState updateError)
+    {
+        Debug.Log("Cloud Reco update error " + updateError.ToString());
+    }
+    public void OnStateChanged(bool scanning) //스캔변화값을 읽어주는 함수
+    {
+        mIsScanning = scanning;
+        if (scanning)
+        {
+            // clear all known trackables
+            var tracker = TrackerManager.Instance.GetTracker<ObjectTracker>();
+            tracker.GetTargetFinder<ImageTargetFinder>().ClearTrackables(false);
+        }
+    }
+    // Here we handle a cloud target recognition event
+    //
+    public void OnNewSearchResult(TargetFinder.TargetSearchResult targetSearchResult)
+    {
+        TargetFinder.CloudRecoSearchResult cloudRecoSearchResult =
+            (TargetFinder.CloudRecoSearchResult)targetSearchResult;
+        // do something with the target metadata
+        mTargetMetadata = cloudRecoSearchResult.MetaData;
+        // stop the target finder (i.e. stop scanning the cloud)
+        mCloudRecoBehaviour.CloudRecoEnabled = false;
+        // Build augmentation based on target 
+        if (ImageTargetTemplate)
+        {
+            // enable the new result with the same ImageTargetBehaviour: 
+            ObjectTracker tracker = TrackerManager.Instance.GetTracker<ObjectTracker>();
+            tracker.GetTargetFinder<ImageTargetFinder>().EnableTracking(targetSearchResult, ImageTargetTemplate.gameObject);
+            Debug.Log(mTargetMetadata);
+        }
+    }
+    void OnGUI()
+    {
+        GUIStyle style = new GUIStyle(GUI.skin.button);
+        style.fontSize = 30;
+        // Display current 'scanning' status
+        // GUI.Box (new Rect(100,100,200,50), mIsScanning ? "Scanning" : "Not scanning");
+        // // Display metadata of latest detected cloud-target
+        // GUI.Box (new Rect(100,200,200,50), "Metadata: " + mTargetMetadata);
+        // If not scanning, show button
+        // so that user can restart cloud scanning
+        if (!mIsScanning)
+        {
+            if (GUI.Button(new Rect(100, 300, 300, 150), "Restart Scanning", style))
+            {
+                // Restart TargetFinder
+                mCloudRecoBehaviour.CloudRecoEnabled = true;
+            }
+        }
+    }
+}
